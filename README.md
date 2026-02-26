@@ -2,118 +2,136 @@
 
 ## Overview
 
-This project applies unsupervised machine learning and association rule mining techniques to analyze retail customer purchasing behavior.
+This project applies unsupervised machine learning and association rule mining techniques to analyze real-world retail transaction data from the UCI Online Retail dataset.
 
-The analysis combines customer segmentation and market basket analysis to uncover patterns that support data-driven business decisions.
-
-### Objectives
-
-- Segment customers based on purchasing behavior  
-- Identify product associations using transaction data  
-- Translate analytical findings into actionable business insights  
+The goal is to extract meaningful customer segments and uncover product associations that can drive business decisions.
 
 ---
 
-# Customer Segmentation using K-Means
+## Dataset
 
-## Methodology
+**Source:** UCI Machine Learning Repository  
+**Dataset:** Online Retail  
+**Size:** 541,909 transactions  
+**Period:** Dec 2010 – Dec 2011  
+**Country Coverage:** Primarily UK-based customers
 
-1. Data preprocessing and feature engineering  
-2. Feature scaling to standardize variables  
-3. Elbow Method to determine optimal number of clusters  
-4. K-Means clustering implementation (k = 4)  
-5. Cluster visualization and profiling  
-
-## Key Findings
-
-Customers were grouped into distinct behavioral segments based on spending patterns and purchase frequency.
-
-Example segment types:
-
-- High Value Customers – High total spend and frequent purchases  
-- Frequent Buyers – Moderate spend with consistent purchasing  
-- Occasional Shoppers – Irregular engagement  
-- Low Engagement Customers – Low spend and infrequent purchases  
-
-## Business Value
-
-- Enables targeted marketing campaigns  
-- Supports personalized promotions  
-- Improves customer retention strategies  
-- Enhances revenue optimization efforts  
+Each transaction contains:
+- Invoice number
+- Product ID and description
+- Quantity
+- Invoice timestamp
+- Unit price
+- Customer ID
+- Country
 
 ---
 
-# Market Basket Analysis using Apriori
+## Data Cleaning & Preprocessing
 
-## Methodology
+The following steps were performed:
 
-1. Transaction data transformation into itemsets  
-2. Association rule mining using the Apriori algorithm  
-3. Evaluation using:
-   - Support  
-   - Confidence  
-   - Lift  
-4. Rule visualization for interpretability  
+- Removed cancelled transactions (InvoiceNo starting with "C")
+- Removed missing Customer IDs
+- Removed negative quantities and prices
+- Created TotalAmount = Quantity × UnitPrice
+- Aggregated data at customer level
 
-## Key Findings
-
-The model identified strong product relationships within customer transactions.
-
-Example insights:
-
-- Butter → Bread shows high confidence  
-- Chips ↔ Beer demonstrates strong lift  
-- Frequent item pairings highlight bundling opportunities  
-
-## Business Value
-
-- Supports cross-selling strategies  
-- Improves product placement decisions  
-- Enables bundle pricing optimization  
-- Strengthens inventory planning  
+Final cleaned dataset:
+~397,000 valid transactions
 
 ---
 
-# Tools & Libraries
+## Customer Segmentation (K-Means)
 
-- R  
-- dplyr  
-- ggplot2  
-- cluster  
-- factoextra  
-- arules  
-- arulesViz  
+### Features Used
+- TotalSpent
+- TotalTransactions
+- TotalQuantity
+
+### Steps
+- Feature scaling
+- Elbow method for optimal cluster selection
+- K-Means clustering
+- Cluster summary analysis
+
+### Results
+Identified distinct behavioral customer groups, such as:
+- High-value frequent buyers
+- Low-frequency high spenders
+- Price-sensitive customers
+- Occasional buyers
+
+### Business Use Cases
+- Targeted marketing
+- Customer lifetime value optimization
+- Loyalty program personalization
 
 ---
 
-# Project Structure
+## Market Basket Analysis (Apriori)
+
+### Steps
+- Transaction-to-item transformation
+- Frequent itemset generation
+- Association rule mining
+- Evaluation using Support, Confidence, Lift
+
+### Example Insight
+Strong product relationships such as:
+Butter → Bread (High lift)
+
+### Business Use Cases
+- Cross-selling
+- Bundle recommendations
+- Store layout optimization
+
+---
+
+## Tools & Libraries
+
+- R
+- dplyr
+- readxl
+- ggplot2
+- cluster
+- factoextra
+- arules
+- arulesViz
+
+---
+
+## Project Structure
 
 ```
 customer-segmentation-market-basket/
 │
+├── data/
+│   └── online_retail.xlsx
+│
 ├── scripts/
 │   ├── customer_segmentation.R
 │   └── market_basket_analysis.R
+│
+├── visuals/
 │
 └── README.md
 ```
 
 ---
 
-# Business Applications
+## Key Outcomes
 
-- Customer segmentation for targeted outreach  
-- Cross-selling recommendation systems  
-- Inventory optimization  
-- Loyalty strategy development  
-- Data-driven retail analytics  
+- Built full preprocessing pipeline
+- Applied clustering on real transaction data
+- Implemented association rule mining
+- Translated technical results into business insights
 
 ---
 
-# Future Improvements
+## Next Improvements
 
-- Apply hierarchical clustering for comparison  
-- Use larger real-world retail dataset  
-- Integrate predictive modeling  
-- Deploy insights into dashboard (Tableau / Power BI)  
+- RFM segmentation
+- PCA dimensionality reduction
+- Interactive dashboard (Shiny / Power BI)
+- Predictive churn modeling
