@@ -1,124 +1,63 @@
-# =====================================================
-# Customer Segmentation with RFM + K-Means Clustering
-# =====================================================
+# -----------------------------
+# Customer Segmentation (RFM + K-Means)
+# -----------------------------
 
+library(readxl)
 library(dplyr)
 library(ggplot2)
 library(cluster)
 library(factoextra)
 
-set.seed(123)
+# Load dataset
+data <- read_excel("data/online_retail.xlsx")
 
-# -----------------------------------------------------
-# Simulate Realistic Customer Data
-# -----------------------------------------------------
+# Data Cleaning
+data <- data %>%
+  filter(!is.na(CustomerID),
+         Quantity > 0,
+         UnitPrice > 0)
 
-customer_data <- data.frame(
-  CustomerID = 1:300,
-  TotalSpend = abs(rnorm(300, mean = 2000, sd = 800)),
-  Frequency = rpois(300, lambda = 15),
-  AvgBasketSize = abs(rnorm(300, mean = 5, sd = 2)),
-  Recency = runif(300, 1, 365)
-)
+# Convert InvoiceDate
+data$InvoiceDate <- as.POSIXct(data$InvoiceDate)
 
-# -----------------------------------------------------
-# RFM Feature Engineering
-# -----------------------------------------------------
+# Create Total Spend column
+data$TotalSpend <- data$Quantity * data$UnitPrice
 
-customer_data <- customer_data %>%
-  mutate(
-    R_score = ntile(Recency, 4),
-    F_score = ntile(Frequency, 4),
-    M_score = ntile(TotalSpend, 4)
+# Snapshot date (one day after last transaction)
+snapshot_date <- max(data$InvoiceDate) + 1
+
+# RFM Calculation
+rfm <- data %>%
+  group_by(CustomerID) %>%
+  summarise(
+    Recency = as.numeric(snapshot_date - max(InvoiceDate)),
+    Frequency = n_distinct(InvoiceNo),
+    Monetary = sum(TotalSpend)
   )
 
-customer_data$RFM_Score <-
-  customer_data$R_score * 100 +
-  customer_data$F_score * 10 +
-  customer_data$M_score
+# Scale RFM
+rfm_scaled <- scale(rfm[,2:4])
 
-# -----------------------------------------------------
-# Prepare Features for Clustering
-# -----------------------------------------------------
+# Determine optimal clusters (Elbow Method)
+fviz_nbclust(rfm_scaled, kmeans, method = "wss")
 
-scaled_data <- scale(
-  customer_data[, c(
-    "TotalSpend",
-    "Frequency",
-    "AvgBasketSize",
-    "Recency",
-    "RFM_Score"
-  )]
-)
+# K-Means Clustering
+set.seed(123)
+kmeans_model <- kmeans(rfm_scaled, centers = 4, nstart = 25)
 
-# -----------------------------------------------------
-# Determine Optimal Clusters (Elbow Method)
-# -----------------------------------------------------
+rfm$Cluster <- as.factor(kmeans_model$cluster)
 
-png("visuals/elbow_plot.png", width = 800, height = 600)
-fviz_nbclust(scaled_data, kmeans, method = "wss") +
-  ggtitle("Elbow Method for Optimal Clusters")
-dev.off()
+# Visualize clusters
+fviz_cluster(kmeans_model, data = rfm_scaled)
 
-# -----------------------------------------------------
-# Apply K-Means
-# -----------------------------------------------------
-
-kmeans_model <- kmeans(scaled_data, centers = 4, nstart = 25)
-
-customer_data$Cluster <- kmeans_model$cluster
-
-# -----------------------------------------------------
-# Silhouette Evaluation
-# -----------------------------------------------------
-
-sil <- silhouette(kmeans_model$cluster, dist(scaled_data))
-avg_silhouette <- mean(sil[, 3])
-
-print(paste("Average Silhouette Score:",
-            round(avg_silhouette, 3)))
-
-# -----------------------------------------------------
-# Save Cluster Visualization
-# -----------------------------------------------------
-
-png("visuals/cluster_plot.png", width = 800, height = 600)
-fviz_cluster(kmeans_model,
-             data = scaled_data,
-             ellipse.type = "convex",
-             ggtheme = theme_minimal()) +
-  ggtitle("Customer Segmentation using K-Means with RFM")
-dev.off()
-
-# -----------------------------------------------------
-# Cluster Summary Statistics
-# -----------------------------------------------------
-
-cluster_summary <- customer_data %>%
+# Cluster summary
+cluster_summary <- rfm %>%
   group_by(Cluster) %>%
   summarise(
-    Avg_Spend = mean(TotalSpend),
-    Avg_Frequency = mean(Frequency),
-    Avg_Basket = mean(AvgBasketSize),
     Avg_Recency = mean(Recency),
-    Avg_RFM = mean(RFM_Score)
+    Avg_Frequency = mean(Frequency),
+    Avg_Monetary = mean(Monetary),
+    Customers = n()
   )
 
 print(cluster_summary)
-
-# -----------------------------------------------------
-# Label Customer Segments
-# -----------------------------------------------------
-
-customer_data$Segment <- case_when(
-  customer_data$Cluster == 1 ~ "High Value",
-  customer_data$Cluster == 2 ~ "Frequent Buyers",
-  customer_data$Cluster == 3 ~ "Occasional Shoppers",
-  customer_data$Cluster == 4 ~ "Low Engagement"
-)
-
-segment_distribution <- customer_data %>%
-  group_by(Segment) %>%
-  summarise(Count = n())
-
-print(segment_distribution)

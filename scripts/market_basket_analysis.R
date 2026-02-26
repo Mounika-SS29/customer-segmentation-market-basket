@@ -1,51 +1,40 @@
-# ==============================================
-# Market Basket Analysis using Apriori Algorithm
-# ==============================================
+# -----------------------------
+# Market Basket Analysis (Apriori)
+# -----------------------------
 
+library(readxl)
+library(dplyr)
 library(arules)
 library(arulesViz)
 
-# ----------------------------------------------
-# Create Synthetic Transaction Data
-# ----------------------------------------------
-transactions_list <- list(
-  c("Milk","Bread","Butter"),
-  c("Beer","Chips"),
-  c("Milk","Bread"),
-  c("Bread","Butter"),
-  c("Beer","Diapers")
+# Load dataset
+data <- read_excel("data/online_retail.xlsx")
+
+# Clean
+data <- data %>%
+  filter(!is.na(CustomerID),
+         Quantity > 0)
+
+# Convert to transaction format
+basket <- data %>%
+  group_by(InvoiceNo) %>%
+  summarise(items = list(unique(Description)))
+
+transactions <- as(
+  split(data$Description, data$InvoiceNo),
+  "transactions"
 )
 
-transactions <- as(transactions_list, "transactions")
+# Apply Apriori
+rules <- apriori(
+  transactions,
+  parameter = list(support = 0.01,
+                   confidence = 0.5,
+                   minlen = 2)
+)
 
-# Summary of transactions
-summary(transactions)
+# View top rules
+inspect(head(sort(rules, by = "lift"), 10))
 
-# ----------------------------------------------
-# Apply Apriori Algorithm
-# ----------------------------------------------
-rules <- apriori(transactions,
-                 parameter = list(
-                   supp = 0.2,
-                   conf = 0.5,
-                   minlen = 2
-                 ))
-
-# Sort rules by Lift
-sorted_rules <- sort(rules, by = "lift")
-
-# Inspect top 5 rules
-inspect(head(sorted_rules, 5))
-
-# ----------------------------------------------
-# Save Association Rule Graph
-# ----------------------------------------------
-png("visuals/association_rules.png", width = 800, height = 600)
-plot(sorted_rules, method = "graph",
-     control = list(type = "items"))
-dev.off()
-
-# ----------------------------------------------
-# Rule Summary
-# ----------------------------------------------
-quality(sorted_rules)
+# Plot
+plot(rules, method = "graph", engine = "htmlwidget")
