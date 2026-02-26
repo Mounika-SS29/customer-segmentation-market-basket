@@ -105,3 +105,20 @@ cluster_summary <- customer_data %>%
   )
 
 print(cluster_summary)
+
+# -----------------------------------------------------
+# Label Customer Segments
+# -----------------------------------------------------
+
+customer_data$Segment <- case_when(
+  customer_data$Cluster == 1 ~ "High Value",
+  customer_data$Cluster == 2 ~ "Frequent Buyers",
+  customer_data$Cluster == 3 ~ "Occasional Shoppers",
+  customer_data$Cluster == 4 ~ "Low Engagement"
+)
+
+segment_distribution <- customer_data %>%
+  group_by(Segment) %>%
+  summarise(Count = n())
+
+print(segment_distribution)
